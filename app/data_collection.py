@@ -1,4 +1,5 @@
 import csv
+from pathlib import Path
 import requests
 from datetime import date
 
@@ -69,3 +70,19 @@ def save_to_csv(rows, path):
             writer.writerows(rows)     # then one line per repo
     except OSError as error:
         raise DataCollectionError(f"Could not save file: {error}")
+    
+
+def collect_data(languages, count, path):
+    """Fetch repos for several languages and save them in one CSV."""
+    if not languages:
+        raise DataCollectionError("Give at least one language")
+
+    # 1. Collect repos for every language
+    rows = []
+    for language in languages:
+        rows.extend(fetch_repositories(language, count))
+
+    # 2. Make sure the folder exists, then save
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    save_to_csv(rows, path)
+    return rows
