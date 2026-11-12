@@ -1,3 +1,4 @@
+import csv
 import requests
 from datetime import date
 
@@ -43,3 +44,28 @@ def fetch_repositories(language, count=30):
             "collected_on": today,
         })
     return rows
+
+
+# The columns Shabana's code expects, in this order
+COLUMNS = [
+    "repo_name", "language", "stars",
+    "created_at", "updated_at", "collected_on",
+]
+
+
+def save_to_csv(rows, path):
+    """Write the collected rows into a CSV file."""
+    # 1. Check the inputs
+    if not rows:
+        raise DataCollectionError("No data to save")
+    if not str(path).lower().endswith(".csv"):
+        raise DataCollectionError("File must be a .csv file")
+
+    # 2. Write the file
+    try:
+        with open(path, "w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=COLUMNS)
+            writer.writeheader()       # first line: column names
+            writer.writerows(rows)     # then one line per repo
+    except OSError as error:
+        raise DataCollectionError(f"Could not save file: {error}")
