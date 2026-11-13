@@ -1,4 +1,4 @@
-﻿class DataCollectionError(Exception):
+class DataCollectionError(Exception):
     """Raised when GitHub data cannot be collected."""
 
 
