@@ -14,3 +14,6 @@ repo_name, language, stars, created_at, updated_at, collected_on
 Limitations:
 - GitHub allows only a limited number of unauthenticated searches per minute. If you see a rate limit error, wait one minute and try again.
 - Each search returns at most 100 repositories.
+## Team Contributions
+
+- Sadhika: GitHub data collection (app/data_collection.py) and its tests
