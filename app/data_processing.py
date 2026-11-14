@@ -74,3 +74,31 @@ def clean_data(rows):
         cleaned.append(new_row)
 
     return cleaned
+
+# Which group each programming language belongs to
+CATEGORIES = {
+    "python": "Data/AI",
+    "r": "Data/AI",
+    "jupyter notebook": "Data/AI",
+    "javascript": "Web",
+    "typescript": "Web",
+    "html": "Web",
+    "css": "Web",
+    "php": "Web",
+    "java": "Backend",
+    "c#": "Backend",
+    "ruby": "Backend",
+    "kotlin": "Mobile",
+    "swift": "Mobile",
+    "dart": "Mobile",
+    "rust": "Systems",
+    "go": "Systems",
+    "c": "Systems",
+    "c++": "Systems",
+}
+
+
+def categorise_technology(language):
+    """Return the group for a programming language, or 'Other'."""
+    key = (language or "").strip().lower()
+    return CATEGORIES.get(key, "Other")
