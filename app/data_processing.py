@@ -34,3 +34,43 @@ def load_raw_data(path):
         raise DataValidationError(f"Missing columns: {missing}")
 
     return rows
+
+def clean_data(rows):
+    """Remove duplicates and bad rows, and fix missing values."""
+    cleaned = []
+    seen = set()  # remembers (repo, date) pairs we already kept
+
+    for row in rows:
+        repo = (row.get("repo_name") or "").strip()
+        date = (row.get("collected_on") or "").strip()
+
+        # Skip rows with no repo name
+        if not repo:
+            continue
+
+        # Skip duplicates: same repo on the same day
+        if (repo, date) in seen:
+            continue
+
+        # Stars must be a number that is not negative
+        try:
+            stars = int(row.get("stars"))
+        except (ValueError, TypeError):
+            continue
+        if stars < 0:
+            continue
+
+        # A missing language becomes "Unknown"
+        language = (row.get("language") or "").strip()
+        if not language:
+            language = "Unknown"
+
+        new_row = dict(row)
+        new_row["repo_name"] = repo
+        new_row["language"] = language
+        new_row["stars"] = stars
+
+        seen.add((repo, date))
+        cleaned.append(new_row)
+
+    return cleaned
