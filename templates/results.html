@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trend Results</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Trending Programming Languages</h1>
+        <p>Showing demo trend analysis results:</p>
+
+        <div class="chart-box">
+            <canvas id="trendChart"></canvas>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Language</th>
+                    <th>Repositories</th>
+                    <th>Total Stars</th>
+                    <th>Growth (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in trends %}
+                <tr>
+                    <td><strong>{{ item.language }}</strong></td>
+                    <td>{{ item.repos }}</td>
+                    <td>{{ item.total_stars }}</td>
+                    <td>+{{ item.growth }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <br>
+        <a href="/" class="btn secondary">Back to Home</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const trendsData = {{ trends | tojson }};
+        const labels = trendsData.map(item => item.language);
+        const growthData = trendsData.map(item => item.growth);
+
+        new Chart(document.getElementById('trendChart'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Growth Rate (%)',
+                    data: growthData,
+                    backgroundColor: '#2563eb'
+                }]
+            }
+        });
+    </script>
+</body>
+</html>
