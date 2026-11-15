@@ -102,3 +102,39 @@ def categorise_technology(language):
     """Return the group for a programming language, or 'Other'."""
     key = (language or "").strip().lower()
     return CATEGORIES.get(key, "Other")
+
+# The columns of the processed CSV file (the order matters)
+PROCESSED_COLUMNS = [
+    "repo_name", "language", "category", "stars",
+    "created_at", "updated_at", "collected_on",
+]
+
+
+def process_and_save(raw_path, output_folder="data/processed"):
+    """Load, clean and categorise a raw CSV, then save the result.
+
+    Returns the path of the new file.
+    """
+    import os
+
+    # 1. Load and clean the data
+    rows = clean_data(load_raw_data(raw_path))
+
+    # 2. Add the category column
+    for row in rows:
+        row["category"] = categorise_technology(row["language"])
+
+    # 3. Make sure the output folder exists
+    os.makedirs(output_folder, exist_ok=True)
+
+    # 4. Save to processed_<original file name>
+    file_name = "processed_" + os.path.basename(str(raw_path))
+    output_path = os.path.join(output_folder, file_name)
+
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=PROCESSED_COLUMNS,
+                                extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return output_path
