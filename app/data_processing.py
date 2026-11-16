@@ -1,0 +1,140 @@
+import csv
+
+from app.exceptions import DataValidationError
+
+# The columns every raw CSV file must have
+REQUIRED_COLUMNS = [
+    "repo_name", "language", "stars",
+    "created_at", "updated_at", "collected_on",
+]
+
+
+def load_raw_data(path):
+    """Open a raw CSV file, check it, and return a list of rows."""
+    # 1. The file must end with .csv
+    if not str(path).lower().endswith(".csv"):
+        raise DataValidationError("File must be a .csv file")
+
+    # 2. Try to open the file
+    try:
+        with open(path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            columns = reader.fieldnames
+            rows = list(reader)
+    except FileNotFoundError:
+        raise DataValidationError(f"File not found: {path}")
+
+    # 3. An empty file has no column names
+    if not columns:
+        raise DataValidationError("The file is empty")
+
+    # 4. Check that all the needed columns exist
+    missing = [col for col in REQUIRED_COLUMNS if col not in columns]
+    if missing:
+        raise DataValidationError(f"Missing columns: {missing}")
+
+    return rows
+
+def clean_data(rows):
+    """Remove duplicates and bad rows, and fix missing values."""
+    cleaned = []
+    seen = set()  # remembers (repo, date) pairs we already kept
+
+    for row in rows:
+        repo = (row.get("repo_name") or "").strip()
+        date = (row.get("collected_on") or "").strip()
+
+        # Skip rows with no repo name
+        if not repo:
+            continue
+
+        # Skip duplicates: same repo on the same day
+        if (repo, date) in seen:
+            continue
+
+        # Stars must be a number that is not negative
+        try:
+            stars = int(row.get("stars"))
+        except (ValueError, TypeError):
+            continue
+        if stars < 0:
+            continue
+
+        # A missing language becomes "Unknown"
+        language = (row.get("language") or "").strip()
+        if not language:
+            language = "Unknown"
+
+        new_row = dict(row)
+        new_row["repo_name"] = repo
+        new_row["language"] = language
+        new_row["stars"] = stars
+
+        seen.add((repo, date))
+        cleaned.append(new_row)
+
+    return cleaned
+
+# Which group each programming language belongs to
+CATEGORIES = {
+    "python": "Data/AI",
+    "r": "Data/AI",
+    "jupyter notebook": "Data/AI",
+    "javascript": "Web",
+    "typescript": "Web",
+    "html": "Web",
+    "css": "Web",
+    "php": "Web",
+    "java": "Backend",
+    "c#": "Backend",
+    "ruby": "Backend",
+    "kotlin": "Mobile",
+    "swift": "Mobile",
+    "dart": "Mobile",
+    "rust": "Systems",
+    "go": "Systems",
+    "c": "Systems",
+    "c++": "Systems",
+}
+
+
+def categorise_technology(language):
+    """Return the group for a programming language, or 'Other'."""
+    key = (language or "").strip().lower()
+    return CATEGORIES.get(key, "Other")
+
+# The columns of the processed CSV file (the order matters)
+PROCESSED_COLUMNS = [
+    "repo_name", "language", "category", "stars",
+    "created_at", "updated_at", "collected_on",
+]
+
+
+def process_and_save(raw_path, output_folder="data/processed"):
+    """Load, clean and categorise a raw CSV, then save the result.
+
+    Returns the path of the new file.
+    """
+    import os
+
+    # 1. Load and clean the data
+    rows = clean_data(load_raw_data(raw_path))
+
+    # 2. Add the category column
+    for row in rows:
+        row["category"] = categorise_technology(row["language"])
+
+    # 3. Make sure the output folder exists
+    os.makedirs(output_folder, exist_ok=True)
+
+    # 4. Save to processed_<original file name>
+    file_name = "processed_" + os.path.basename(str(raw_path))
+    output_path = os.path.join(output_folder, file_name)
+
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=PROCESSED_COLUMNS,
+                                extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    return output_path

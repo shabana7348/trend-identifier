@@ -1,0 +1,13 @@
+repo_name,language,stars,created_at,updated_at,collected_on
+django/django,Python,80000,2012-04-28,2026-11-10,2026-11-11
+pallets/flask,Python,68000,2010-04-06,2026-11-09,2026-11-11
+facebook/react,JavaScript,230000,2013-05-24,2026-11-11,2026-11-11
+vuejs/vue,JavaScript,207000,2013-07-29,2026-11-08,2026-11-11
+rust-lang/rust,Rust,98000,2010-06-16,2026-11-11,2026-11-11
+golang/go,Go,125000,2014-08-02,2026-11-10,2026-11-11
+pallets/flask,Python,68000,2010-04-06,2026-11-09,2026-11-11
+someuser/mystery-tool,,1500,2024-01-15,2026-10-01,2026-11-11
+django/django,Python,80500,2012-04-28,2026-11-11,2026-11-12
+facebook/react,JavaScript,230400,2013-05-24,2026-11-12,2026-11-12
+rust-lang/rust,Rust,98300,2010-06-16,2026-11-12,2026-11-12
+someuser/broken-repo,Python,-5,2023-03-03,2026-09-09,2026-11-12
