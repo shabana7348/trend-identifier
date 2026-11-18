@@ -18,7 +18,7 @@ Structured prompts used by the team, and how each AI output was verified.
 ### 3. Test ideas
 - **Prompt (summary):** I asked for edge cases to test for `clean_data`, `categorise_technology` and `process_and_save`.
 - **AI output:** duplicates, the same repo on different days, a missing language, negative stars, non-numeric stars, an empty list, capital letters and spaces in a language name, `None`, an unknown language, a missing output folder and a wrong file type.
-- **How I verified:** I ran every test against my real sample file and checked that each test fails when the matching rule is removed or wrong, not only that it passes.
+- **How I verified:** I ran every test with pytest and checked the results against my real sample file.
 
 ### 4. How I check AI output
 - I never kept AI code without running `python -m pytest`.
