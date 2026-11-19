@@ -1,13 +1,31 @@
 from pathlib import Path
+import pandas as pd
 from flask import Flask, render_template
 
-# Tell Flask where the 'templates' and 'static' folders live
+from app.data_processing import load_raw_data, clean_data
+from app.analyzer import calculate_language_trends, calculate_repo_trends
+from app.exceptions import DataValidationError, AnalysisError
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+SAMPLE_CSV = BASE_DIR / "tests" / "sample_data" / "raw_sample.csv"
+
 app = Flask(
     __name__,
     template_folder=str(BASE_DIR / "templates"),
     static_folder=str(BASE_DIR / "static"),
 )
+
+
+def get_dashboard_data(csv_path=SAMPLE_CSV):
+    """Run Shabana's cleaning + Nividhini's trend calculations on a CSV file."""
+    raw_rows = load_raw_data(csv_path)
+    cleaned_rows = clean_data(raw_rows)
+    df = pd.DataFrame(cleaned_rows)
+
+    lang_df = calculate_language_trends(df)
+    repo_df = calculate_repo_trends(df, top_n=5)
+
+    return lang_df.to_dict(orient="records"), repo_df.to_dict(orient="records")
 
 
 @app.route("/")
@@ -18,12 +36,19 @@ def index():
 
 @app.route("/results")
 def results():
-    """Results page showing trending languages and charts."""
-    # Fake demo data until Nividhini's analyzer.py is finished
-    demo_trends = [
-        {"language": "Python", "repos": 3, "total_stars": 148505, "growth": 18.5},
-        {"language": "JavaScript", "repos": 2, "total_stars": 437400, "growth": 12.2},
-        {"language": "Rust", "repos": 1, "total_stars": 98300, "growth": 24.0},
-        {"language": "Go", "repos": 1, "total_stars": 125000, "growth": 9.8},
-    ]
-    return render_template("results.html", trends=demo_trends)
+    """Results page showing real language trends and top growing repos."""
+    try:
+        language_trends, repo_trends = get_dashboard_data(SAMPLE_CSV)
+        return render_template(
+            "results.html",
+            language_trends=language_trends,
+            repo_trends=repo_trends,
+            error=None,
+        )
+    except (DataValidationError, AnalysisError) as exc:
+        return render_template(
+            "results.html",
+            language_trends=[],
+            repo_trends=[],
+            error=str(exc),
+        )

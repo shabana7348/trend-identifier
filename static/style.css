@@ -7,17 +7,37 @@ body {
 }
 
 .container {
-    max-width: 800px;
+    max-width: 850px;
     margin: 0 auto;
     background: white;
-    padding: 30px;
+    padding: 32px;
     border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
     color: #111827;
     margin-top: 0;
+}
+
+h2 {
+    color: #1f2937;
+    font-size: 20px;
+    margin-top: 0;
+}
+
+.card-section {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.checkbox-group {
+    display: flex;
+    gap: 16px;
+    margin: 12px 0;
 }
 
 .btn {
@@ -26,9 +46,12 @@ h1 {
     color: white;
     padding: 12px 20px;
     text-decoration: none;
+    border: none;
     border-radius: 6px;
+    font-size: 15px;
     font-weight: bold;
-    margin-top: 10px;
+    cursor: pointer;
+    margin-top: 8px;
 }
 
 .btn:hover {
@@ -42,7 +65,7 @@ h1 {
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 25px;
+    margin-top: 20px;
 }
 
 th, td {
@@ -53,9 +76,45 @@ th, td {
 
 th {
     background-color: #f9fafb;
+    font-weight: bold;
 }
 
-.chart-box {
-    margin-top: 20px;
-    max-height: 300px;
+.bar-chart {
+    margin: 20px 0;
+}
+
+.bar-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.bar-label {
+    width: 110px;
+    font-weight: bold;
+}
+
+.bar-track {
+    flex: 1;
+    background-color: #e5e7eb;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.bar-fill {
+    background-color: #2563eb;
+    color: white;
+    padding: 6px 12px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.error-box {
+    background-color: #fee2e2;
+    color: #991b1b;
+    padding: 15px;
+    border-radius: 6px;
+    margin: 20px 0;
 }
