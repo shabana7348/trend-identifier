@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Trend Results</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>GitHub Technology Trend Results</h1>
+
+        {% if error %}
+            <div class="error-box">
+                <strong>Error:</strong> {{ error }}
+            </div>
+        {% else %}
+            <h2>1. Fastest-Growing Programming Languages</h2>
+            <p>Ranked by percentage growth in stars across tracked snapshots:</p>
+
+            <!-- Built-in Bar Chart -->
+            <div class="bar-chart">
+                {% for item in language_trends %}
+                <div class="bar-row">
+                    <span class="bar-label">{{ item.language }}</span>
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width: {{ [item.growth_percent * 60, 100] | min }}%;">
+                            +{{ item.growth_percent }}%
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Language Trends Table -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>Language</th>
+                        <th>Tracked Repos</th>
+                        <th>Starting Stars</th>
+                        <th>Stars Gained</th>
+                        <th>Growth (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in language_trends %}
+                    <tr>
+                        <td><strong>{{ item.language }}</strong></td>
+                        <td>{{ item.repos }}</td>
+                        <td>{{ item.starting_stars }}</td>
+                        <td>+{{ item.growth }}</td>
+                        <td>+{{ item.growth_percent }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <h2 style="margin-top: 40px;">2. Top Growing Repositories</h2>
+            <p>Individual repositories that gained the most stars:</p>
+
+            <!-- Top Repositories Table -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>Repository</th>
+                        <th>Language</th>
+                        <th>First Stars</th>
+                        <th>Latest Stars</th>
+                        <th>Stars Gained</th>
+                        <th>Growth (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for repo in repo_trends %}
+                    <tr>
+                        <td><strong>{{ repo.repo_name }}</strong></td>
+                        <td>{{ repo.language }}</td>
+                        <td>{{ repo.first_stars }}</td>
+                        <td>{{ repo.last_stars }}</td>
+                        <td>+{{ repo.growth }}</td>
+                        <td>+{{ repo.growth_percent }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        <br>
+        <a href="/" class="btn secondary">Back to Home</a>
+    </div>
+</body>
+</html>
