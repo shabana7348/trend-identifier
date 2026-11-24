@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TRENDIFY – Scenario Advisor</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+</head>
+<body class="advisor-page">
+  <header class="navbar"><span class="brand">TRENDIFY</span><a href="/">Home</a></header>
+
+  <main class="container">
+    <h1>Scenario Advisor</h1>
+    <form method="post">
+      <textarea name="description" rows="4"
+        placeholder="e.g. I want a simple website for beginners that loads fast">{{ description }}</textarea>
+      <button type="submit">Get recommendation</button>
+    </form>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    {% if result %}
+      {% if result.best %}
+        <section class="card">
+          <h2>Best match: {{ result.best.technology }}</h2>
+          <p>{{ result.best.reason }}</p>
+          <div class="bar"><span style="width: {{ [result.best.score * 3, 100] | min }}%"></span></div>
+          <small>Score {{ result.best.score }}</small>
+        </section>
+        {% if result.runners_up %}
+          <h3>Runners-up</h3>
+          {% for r in result.runners_up %}
+            <section class="card small"><strong>{{ r.technology }}</strong> (score {{ r.score }}): {{ r.reason }}</section>
+          {% endfor %}
+        {% endif %}
+      {% else %}
+        <p>{{ result.message }}</p>
+      {% endif %}
+    {% endif %}
+
+    <section class="card">
+      <h2>Compare two technologies</h2>
+      <input id="techA" placeholder="react"> <input id="techB" placeholder="vue">
+      <button type="button" onclick="compare()">Compare</button>
+      <canvas id="trendChart" height="120"></canvas>
+    </section>
+  </main>
+
+  <script>
+    let chart;
+    async function compare() {
+      const a = document.getElementById("techA").value.trim();
+      const b = document.getElementById("techB").value.trim();
+      if (!a || !b) return;
+      const res = await fetch(`/api/trends?tech=${encodeURIComponent(a)}&tech=${encodeURIComponent(b)}`);
+      const data = await res.json();
+      if (data.error) { alert(data.error); return; }
+      const labels = [...new Set(Object.values(data).flat().map(p => p.date))].sort();
+      const datasets = Object.entries(data).map(([name, points]) => ({
+        label: name,
+        data: labels.map(d => (points.find(p => p.date === d) || {}).stars ?? null),
+        spanGaps: true,
+      }));
+      if (chart) chart.destroy();
+      chart = new Chart(document.getElementById("trendChart"), { type: "line", data: { labels, datasets } });
+    }
+  </script>
+</body>
+</html>
