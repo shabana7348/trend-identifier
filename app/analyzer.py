@@ -43,8 +43,8 @@ def calculate_language_trends(df):
 
     # 8. Growth as a percentage, rounded to 2 decimals
     by_language["growth_percent"] = (
-        by_language["growth"] / by_language["starting_stars"] * 100
-    ).round(2)
+    by_language["growth"] / by_language["starting_stars"].replace(0, pd.NA) * 100
+    ).astype(float).round(2).fillna(0)
 
     # 9. Fastest-growing language first
     return by_language.sort_values("growth_percent", ascending=False).reset_index(drop=True)
@@ -90,3 +90,44 @@ def calculate_repo_trends(df, top_n=5):
         return top[
             ["repo_name", "language", "first_stars", "last_stars", "growth", "growth_percent"]
         ].reset_index(drop=True)
+ # ---- Trend status settings (adjust after you see real numbers) ----
+RISING_THRESHOLD = 2.0       # growth % at or above this = Rising
+DECLINING_THRESHOLD = -0.5   # growth % at or below this = Declining
+
+
+def get_trend_status(growth_percent):
+    """Turn a growth percentage into a label."""
+    if growth_percent >= RISING_THRESHOLD:
+        return "Rising"
+    if growth_percent <= DECLINING_THRESHOLD:
+        return "Declining"
+    return "Stable"
+
+
+def top_growing_languages(df, top_n=5):
+    """Top languages by growth %, each with a trend status.
+    Feeds the 'Top 5 growing' card on the homepage."""
+    trends = calculate_language_trends(df).head(top_n).copy()
+    trends["status"] = trends["growth_percent"].apply(get_trend_status)
+    return trends.to_dict(orient="records")
+
+
+def compare_languages(df, lang_a, lang_b):
+    """Compare two languages side by side (for the Compare page)."""
+    trends = calculate_language_trends(df)
+    trends["key"] = trends["language"].str.lower()
+
+    result = {}
+    for name in (lang_a, lang_b):
+        row = trends[trends["key"] == name.lower()]
+        if row.empty:
+            raise AnalysisError(f"No trend data found for '{name}'")
+        row = row.iloc[0]
+        result[name] = {
+            "language": row["language"],
+            "repos": int(row["repos"]),
+            "growth": int(row["growth"]),
+            "growth_percent": float(row["growth_percent"]),
+            "status": get_trend_status(row["growth_percent"]),
+        }
+    return result
