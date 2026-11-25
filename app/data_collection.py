@@ -151,3 +151,10 @@ def save_snapshot(rows, directory="data/raw", today=None):
         writer.writeheader()
         writer.writerows(rows)
     return path
+
+
+if __name__ == "__main__":
+    snapshot_rows = collect_snapshot()
+    if not snapshot_rows:
+        raise SystemExit("GitHub returned no repositories; no snapshot was saved.")
+    print(f"Saved {len(snapshot_rows)} live GitHub repositories to {save_snapshot(snapshot_rows)}")

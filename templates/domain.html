@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ domain.name }} trends | TRENDIFY</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="navbar">
+    <span class="brand">TRENDIFY</span>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/advisor">Advisor</a>
+      <a href="/results">Language trends</a>
+    </nav>
+    <span class="badge">Live GitHub data</span>
+  </header>
+  <main class="container">
+    <p><a href="/">← Explore all domains</a></p>
+    <h1>{{ domain.icon }} {{ domain.name }}</h1>
+    <p class="muted">Popular technologies by total GitHub stars in the latest snapshot.</p>
+    {% if error %}<p class="notice">{{ error }}</p>{% endif %}
+    {% if technologies %}
+      <section class="card">
+        <ol class="rank">
+          {% for tech in technologies %}
+            <li>
+              <strong>{{ tech.technology }}</strong>
+              <span class="muted">{{ tech.repos }} repositories</span>
+              <span class="num">{{ "{:,}".format(tech.total_stars) }} stars</span>
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
+    {% endif %}
+  </main>
+</body>
+</html>
