@@ -1,19 +1,20 @@
 # trend-identifier
 Emerging Technology and Trends Identifier
-## Data Collection
+## Live technology snapshots
 
-The app collects popular repositories from the GitHub Search API.
+The dashboard reads real repository data from dated GitHub topic snapshots in `data/raw`.
+Collect a snapshot from the project folder with:
 
-To create the raw data file, run this from the project folder:
+    python -m app.data_collection
 
-    python -c "from app.data_collection import collect_data; collect_data(['Python', 'JavaScript', 'Go', 'Rust'], 20, 'data/raw_data.csv')"
+This searches the topics in `app/topics.py` and saves `data/raw/snapshot_YYYY-MM-DD.csv`.
+Run it again on a later date to add a second snapshot and enable growth trends. The
+unauthenticated collector waits between searches to respect GitHub's search API limit.
+Set `GITHUB_TOKEN` to a GitHub token in your environment to use the higher authenticated
+rate limit.
 
-This creates `data/raw_data.csv` with these columns:
-repo_name, language, stars, created_at, updated_at, collected_on
-
-Limitations:
-- GitHub allows only a limited number of unauthenticated searches per minute. If you see a rate limit error, wait one minute and try again.
-- Each search returns at most 100 repositories.
+The separate language collector (`collect_data`) writes language data and is used by the
+language analysis; it does not supply technology snapshots to the home dashboard.
 
 ## Data Processing (Member 2: Shabana)
 

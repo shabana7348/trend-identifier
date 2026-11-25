@@ -1,54 +1,198 @@
-from pathlib import Path
+import glob
+import os
+
 import pandas as pd
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template, request
 
-from app.data_processing import load_raw_data, clean_data
-from app.analyzer import calculate_language_trends, calculate_repo_trends
-from app.exceptions import DataValidationError, AnalysisError
+from app.analyzer import (
+    calculate_repo_trends,
+    calculate_technology_trends,
+    get_trend_status,
+    technology_popularity,
+    top_growing_languages,
+)
+from app.exceptions import AnalysisError, DataValidationError
+from app.recommender import recommend
+from app.topics import DOMAINS as TOPIC_DOMAINS
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-SAMPLE_CSV = BASE_DIR / "tests" / "sample_data" / "raw_sample.csv"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
+
+TECH_COLUMNS = ["technology", "full_name", "stars", "collected_on"]
+LANGUAGE_COLUMNS = ["repo_name", "language", "stars", "collected_on"]
+
+DOMAINS = [
+    {"name": "Web Development", "icon": "🌐"},
+    {"name": "AI & Machine Learning", "icon": "🤖"},
+    {"name": "Mobile Development", "icon": "📱"},
+    {"name": "Cybersecurity", "icon": "🔒"},
+    {"name": "Cloud & DevOps", "icon": "☁️"},
+    {"name": "AR/VR", "icon": "🥽"},
+    {"name": "Blockchain", "icon": "⛓️"},
+    {"name": "Data Science", "icon": "📊"},
+    {"name": "IoT", "icon": "📡"},
+]
+
+DOMAIN_SLUGS = ["web-development", "ai-machine-learning", "mobile-development",
+                "cybersecurity", "cloud-devops", "ar-vr", "blockchain",
+                "data-science", "iot"]
+DOMAIN_TOPIC_GROUPS = ["Web", "AI", "Mobile", "Cyber", "Cloud", "AR/VR",
+                       "Blockchain", "Data", "IoT"]
+for domain, slug in zip(DOMAINS, DOMAIN_SLUGS):
+    domain["slug"] = slug
 
 app = Flask(
     __name__,
-    template_folder=str(BASE_DIR / "templates"),
-    static_folder=str(BASE_DIR / "static"),
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static"),
 )
 
 
-def get_dashboard_data(csv_path=SAMPLE_CSV):
-    """Run Shabana's cleaning + Nividhini's trend calculations on a CSV file."""
-    raw_rows = load_raw_data(csv_path)
-    cleaned_rows = clean_data(raw_rows)
-    df = pd.DataFrame(cleaned_rows)
+# ---------- data loading ----------
 
-    lang_df = calculate_language_trends(df)
-    repo_df = calculate_repo_trends(df, top_n=5)
+def _read_matching(required):
+    """Merge every CSV in data/raw that has all the required columns."""
+    frames = []
+    for path in sorted(glob.glob(os.path.join(RAW_DIR, "*.csv"))):
+        try:
+            df = pd.read_csv(path)
+        except (pd.errors.EmptyDataError, pd.errors.ParserError):
+            continue
+        if set(required) <= set(df.columns):
+            frames.append(df)
+    if not frames:
+        raise DataValidationError(
+            f"No CSV in data/raw has the columns {required}. Collect a snapshot first."
+        )
+    return pd.concat(frames, ignore_index=True)
 
-    return lang_df.to_dict(orient="records"), repo_df.to_dict(orient="records")
 
+def load_technology_data():
+    df = _read_matching(TECH_COLUMNS)
+    df["technology"] = df["technology"].astype(str).str.strip().str.lower()
+    return df
+
+
+def load_language_data():
+    return _read_matching(LANGUAGE_COLUMNS)
+
+
+# ---------- analysis helpers (the only place that calls the analyzer) ----------
+
+def get_top_technologies(df, n=5):
+    return technology_popularity(df, top_n=n).to_dict("records")
+
+
+def get_growing(df, n=5):
+    """Top growing technologies, or [] while there is only one snapshot date."""
+    try:
+        trends = calculate_technology_trends(df)
+    except AnalysisError:
+        return []
+    trends = trends.head(n).copy()
+    trends["status"] = trends["growth_percent"].apply(get_trend_status)
+    return trends.to_dict("records")
+
+
+def get_trends(df):
+    """DataFrame with 'technology' and 'growth_pct' (empty while only one snapshot)."""
+    try:
+        trends = calculate_technology_trends(df)
+    except AnalysisError:
+        return pd.DataFrame(columns=["technology", "growth_pct"])
+    return trends.rename(columns={"growth_percent": "growth_pct"})
+
+
+def get_series(df, technology):
+    """Total stars per snapshot date for one technology (for the chart)."""
+    sub = df[df["technology"] == technology.strip().lower()]
+    daily = sub.drop_duplicates(["collected_on", "full_name"]).groupby("collected_on")["stars"].sum().sort_index()
+    return [{"date": str(d), "stars": int(s)} for d, s in daily.items()]
+
+
+# ---------- pages ----------
 
 @app.route("/")
 def index():
-    """Home page of the dashboard."""
-    return render_template("index.html")
+    popular, growing, message = [], [], None
+    try:
+        df = load_technology_data()
+        popular = get_top_technologies(df)
+        growing = get_growing(df)
+        if not growing:
+            message = "Growth appears once there are snapshots from two or more dates."
+    except (DataValidationError, AnalysisError) as exc:
+        message = str(exc)
+    return render_template("index.html", popular=popular, growing=growing,
+                           message=message, domains=DOMAINS)
 
 
 @app.route("/results")
 def results():
-    """Results page showing real language trends and top growing repos."""
+    language_trends, repo_trends, error = [], [], None
     try:
-        language_trends, repo_trends = get_dashboard_data(SAMPLE_CSV)
-        return render_template(
-            "results.html",
-            language_trends=language_trends,
-            repo_trends=repo_trends,
-            error=None,
-        )
+        df = load_language_data()
+        language_trends = top_growing_languages(df)
+        repo_trends = calculate_repo_trends(df).to_dict("records")
     except (DataValidationError, AnalysisError) as exc:
-        return render_template(
-            "results.html",
-            language_trends=[],
-            repo_trends=[],
-            error=str(exc),
-        )
+        error = str(exc)
+    return render_template("results.html", language_trends=language_trends,
+                           repo_trends=repo_trends, source_name="data/raw", error=error)
+
+
+@app.route("/domain/<domain_key>")
+def domain_page(domain_key):
+    try:
+        domain_index = DOMAIN_SLUGS.index(domain_key)
+    except ValueError:
+        return "Domain not found", 404
+
+    domain, error = DOMAINS[domain_index], None
+    technologies = []
+    try:
+        df = load_technology_data()
+        topics = TOPIC_DOMAINS[DOMAIN_TOPIC_GROUPS[domain_index]]
+        domain_df = df[df["technology"].isin(topics)]
+        if domain_df.empty:
+            error = "No GitHub snapshot data is available for this domain yet."
+        else:
+            technologies = get_top_technologies(domain_df, n=len(topics))
+    except (DataValidationError, AnalysisError) as exc:
+        error = str(exc)
+    return render_template("domain.html", domain=domain, technologies=technologies, error=error)
+
+
+@app.route("/advisor", methods=["GET", "POST"])
+def advisor():
+    description = request.form.get("description", "").strip()
+    result, error = None, None
+    if request.method == "POST":
+        try:
+            if not description:
+                raise DataValidationError("Please describe your project.")
+            result = recommend(description, get_trends(load_technology_data()))
+        except (DataValidationError, AnalysisError) as exc:
+            error = str(exc)
+    return render_template("advisor.html", description=description, result=result, error=error)
+
+
+# ---------- JSON for the charts ----------
+
+@app.route("/api/top")
+def api_top():
+    try:
+        return jsonify(get_top_technologies(load_technology_data()))
+    except (DataValidationError, AnalysisError) as exc:
+        return jsonify({"error": str(exc)}), 404
+
+
+@app.route("/api/trends")
+def api_trends():
+    techs = request.args.getlist("tech")
+    if not techs:
+        return jsonify({"error": "Provide at least one ?tech=name"}), 400
+    try:
+        df = load_technology_data()
+    except DataValidationError as exc:
+        return jsonify({"error": str(exc)}), 404
+    return jsonify({t.lower(): get_series(df, t) for t in techs})

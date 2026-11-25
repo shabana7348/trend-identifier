@@ -1,9 +1,12 @@
 import csv
+import os
 from pathlib import Path
 import requests
 from datetime import date
+import time
 
 from app.exceptions import DataCollectionError
+from app.topics import ALL_TOPICS
 
 # The web address of GitHub's search service
 GITHUB_URL = "https://api.github.com/search/repositories"
@@ -86,3 +89,72 @@ def collect_data(languages, count, path):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     save_to_csv(rows, path)
     return rows
+
+
+GITHUB_SEARCH_URL = "https://api.github.com/search/repositories"
+SNAPSHOT_COLUMNS = ["collected_on", "technology", "full_name", "language", "stars", "topics"]
+
+
+def fetch_topic_repos(topic, token=None, per_page=30, session=None):
+    """Return the most-starred repos for one GitHub topic as a list of dicts."""
+    http = session or requests
+    headers = {"Accept": "application/vnd.github+json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    params = {"q": f"topic:{topic}", "sort": "stars", "order": "desc", "per_page": per_page}
+
+    response = http.get(GITHUB_SEARCH_URL, headers=headers, params=params, timeout=15)
+    if response.status_code != 200:
+        raise RuntimeError(f"GitHub returned {response.status_code} for topic '{topic}'")
+
+    today = date.today().isoformat()
+    return [
+        {
+            "collected_on": today,
+            "technology": topic,
+            "full_name": item["full_name"],
+            "language": item.get("language") or "",
+            "stars": item["stargazers_count"],
+            "topics": ";".join(item.get("topics", [])),
+        }
+        for item in response.json().get("items", [])
+    ]
+
+
+def collect_snapshot(topics=None, token=None, per_page=30, pause=None, session=None):
+    """Collect repos for every topic. Topics that fail are skipped, not fatal."""
+    token = token or os.environ.get("GITHUB_TOKEN")
+    if pause is None:
+        pause = 2 if token else 6  # unauthenticated search is limited to ~10 requests/min
+
+    rows, failed = [], []
+    for topic in topics or ALL_TOPICS:
+        try:
+            rows.extend(fetch_topic_repos(topic, token, per_page, session))
+        except (RuntimeError, requests.RequestException):
+            failed.append(topic)
+        time.sleep(pause)
+    if failed:
+        print(f"Skipped topics: {failed}")
+    return rows
+
+
+def save_snapshot(rows, directory="data/raw", today=None):
+    """Write one dated CSV per day: data/raw/snapshot_YYYY-MM-DD.csv"""
+    if not rows:
+        raise ValueError("No rows to save.")
+    today = today or date.today().isoformat()
+    os.makedirs(directory, exist_ok=True)
+    path = os.path.join(directory, f"snapshot_{today}.csv")
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=SNAPSHOT_COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)
+    return path
+
+
+if __name__ == "__main__":
+    snapshot_rows = collect_snapshot()
+    if not snapshot_rows:
+        raise SystemExit("GitHub returned no repositories; no snapshot was saved.")
+    print(f"Saved {len(snapshot_rows)} live GitHub repositories to {save_snapshot(snapshot_rows)}")

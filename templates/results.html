@@ -1,92 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Trend Results</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TRENDIFY – Language trends</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>GitHub Technology Trend Results</h1>
+  <header class="navbar">
+    <span class="brand">TRENDIFY</span>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/advisor">Advisor</a>
+      <a href="/results">Language trends</a>
+    </nav>
+    <span class="badge">{{ source_name }}</span>
+  </header>
 
-        {% if error %}
-            <div class="error-box">
-                <strong>Error:</strong> {{ error }}
-            </div>
-        {% else %}
-            <h2>1. Fastest-Growing Programming Languages</h2>
-            <p>Ranked by percentage growth in stars across tracked snapshots:</p>
+  <main class="container">
+    <h1>Language trends</h1>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
 
-            <!-- Built-in Bar Chart -->
-            <div class="bar-chart">
-                {% for item in language_trends %}
-                <div class="bar-row">
-                    <span class="bar-label">{{ item.language }}</span>
-                    <div class="bar-track">
-                        <div class="bar-fill" style="width: {{ [item.growth_percent * 60, 100] | min }}%;">
-                            +{{ item.growth_percent }}%
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+    <section class="card">
+      <h2>Fastest-growing languages</h2>
+      {% if language_trends %}
+        <table>
+          <tr><th>Language</th><th>Repos</th><th>Growth (stars)</th><th>Growth %</th><th>Status</th></tr>
+          {% for l in language_trends %}
+            <tr>
+              <td>{{ l.language }}</td><td>{{ l.repos }}</td><td>{{ l.growth }}</td>
+              <td>{{ l.growth_percent }}%</td>
+              <td><span class="pill {{ l.status | lower }}">{{ l.status }}</span></td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <p class="muted">No growth yet. This needs snapshots from two or more dates.</p>
+      {% endif %}
+    </section>
 
-            <!-- Language Trends Table -->
-            <table>
-                <thead>
-                    <tr>
-                        <th>Language</th>
-                        <th>Tracked Repos</th>
-                        <th>Starting Stars</th>
-                        <th>Stars Gained</th>
-                        <th>Growth (%)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in language_trends %}
-                    <tr>
-                        <td><strong>{{ item.language }}</strong></td>
-                        <td>{{ item.repos }}</td>
-                        <td>{{ item.starting_stars }}</td>
-                        <td>+{{ item.growth }}</td>
-                        <td>+{{ item.growth_percent }}%</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-
-            <h2 style="margin-top: 40px;">2. Top Growing Repositories</h2>
-            <p>Individual repositories that gained the most stars:</p>
-
-            <!-- Top Repositories Table -->
-            <table>
-                <thead>
-                    <tr>
-                        <th>Repository</th>
-                        <th>Language</th>
-                        <th>First Stars</th>
-                        <th>Latest Stars</th>
-                        <th>Stars Gained</th>
-                        <th>Growth (%)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for repo in repo_trends %}
-                    <tr>
-                        <td><strong>{{ repo.repo_name }}</strong></td>
-                        <td>{{ repo.language }}</td>
-                        <td>{{ repo.first_stars }}</td>
-                        <td>{{ repo.last_stars }}</td>
-                        <td>+{{ repo.growth }}</td>
-                        <td>+{{ repo.growth_percent }}%</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% endif %}
-
-        <br>
-        <a href="/" class="btn secondary">Back to Home</a>
-    </div>
+    <section class="card">
+      <h2>Repositories gaining the most stars</h2>
+      {% if repo_trends %}
+        <table>
+          <tr><th>Repository</th><th>Language</th><th>From</th><th>To</th><th>Growth</th><th>Growth %</th></tr>
+          {% for r in repo_trends %}
+            <tr>
+              <td>{{ r.repo_name }}</td><td>{{ r.language }}</td>
+              <td>{{ r.first_stars }}</td><td>{{ r.last_stars }}</td>
+              <td>{{ r.growth }}</td><td>{{ r.growth_percent }}%</td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <p class="muted">No repositories with two or more snapshots yet.</p>
+      {% endif %}
+    </section>
+  </main>
 </body>
 </html>

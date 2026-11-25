@@ -1,15 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>GitHub Tech Trend Identifier</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TRENDIFY – Discover What's Next in Technology</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 </head>
 <body>
-    <div class="container">
-        <h1>GitHub Technology Trend Identifier</h1>
-        <p>Track popular GitHub repositories, clean snapshot data, and identify which technologies are growing fastest.</p>
-        <a href="/results" class="btn">View Trend Analysis</a>
+  <header class="navbar">
+    <span class="brand">TRENDIFY</span>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/advisor">Advisor</a>
+      <a href="/results">Language trends</a>
+    </nav>
+    <span class="badge">Live GitHub data</span>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>Discover What's Next in Technology</h1>
+      <p>Real GitHub star data, turned into trends and recommendations.</p>
+      <form action="/advisor" method="post" class="hero-search">
+        <input name="description" placeholder="Describe your project, e.g. a mobile app for beginners">
+        <button type="submit">Find technology</button>
+      </form>
+    </section>
+
+    {% if message %}<p class="notice">{{ message }}</p>{% endif %}
+
+    <div class="grid two">
+      <section class="card">
+        <h2>Top growing technologies</h2>
+        {% if growing %}
+          <ol class="rank">
+            {% for g in growing %}
+              <li>
+                <strong>{{ g.technology }}</strong>
+                <span class="pill {{ g.status | lower }}">{{ g.status }}</span>
+                <span class="num">{{ g.growth_percent }}%</span>
+              </li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          <p class="muted">Not available yet.</p>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <h2>Most popular technologies</h2>
+        {% if popular %}
+          <canvas id="popularChart" height="200"></canvas>
+        {% else %}
+          <p class="muted">No data yet.</p>
+        {% endif %}
+      </section>
     </div>
+
+    <h2>Explore by domain</h2>
+    <div class="grid domains">
+      {% for d in domains %}
+        <a class="card domain" href="{{ url_for('domain_page', domain_key=d.slug) }}" aria-label="Explore {{ d.name }}">
+          <span class="icon">{{ d.icon }}</span><strong>{{ d.name }}</strong>
+        </a>
+      {% endfor %}
+      <a class="card domain compare" href="/advisor"><span class="icon">⚖️</span><strong>Compare technologies</strong></a>
+    </div>
+  </main>
+
+  <script>
+    const popular = {{ popular | tojson }};
+    if (popular.length) {
+      new Chart(document.getElementById("popularChart"), {
+        type: "bar",
+        data: {
+          labels: popular.map(p => p.technology),
+          datasets: [{ label: "Total stars", data: popular.map(p => p.total_stars), backgroundColor: "#7c3aed" }]
+        },
+        options: { plugins: { legend: { display: false } } }
+      });
+    }
+  </script>
 </body>
 </html>
