@@ -74,6 +74,21 @@ def load_technology_data():
 
 
 def load_language_data():
+    """Load language rows from the newest available dated technology snapshots."""
+    frames = []
+    for path in sorted(glob.glob(os.path.join(RAW_DIR, "*.csv"))):
+        try:
+            df = pd.read_csv(path)
+        except (pd.errors.EmptyDataError, pd.errors.ParserError):
+            continue
+        if set(TECH_COLUMNS + ["language"]) <= set(df.columns):
+            language_df = df[["full_name", "language", "stars", "collected_on"]].rename(
+                columns={"full_name": "repo_name"}
+            )
+            frames.append(language_df)
+    if frames:
+        combined = pd.concat(frames, ignore_index=True)
+        return combined.drop_duplicates(["repo_name", "collected_on"], keep="last")
     return _read_matching(LANGUAGE_COLUMNS)
 
 
@@ -92,6 +107,16 @@ def get_growing(df, n=5):
     trends = trends.head(n).copy()
     trends["status"] = trends["growth_percent"].apply(get_trend_status)
     return trends.to_dict("records")
+
+
+def get_zero_growth(df):
+    """Technologies whose total star count did not change across snapshots."""
+    try:
+        trends = calculate_technology_trends(df)
+    except AnalysisError:
+        return []
+    flat = trends[trends["growth"] == 0][["technology", "growth"]]
+    return flat.to_dict("records")
 
 
 def get_trends(df):
@@ -114,17 +139,18 @@ def get_series(df, technology):
 
 @app.route("/")
 def index():
-    popular, growing, message = [], [], None
+    popular, growing, flat_growth, message = [], [], [], None
     try:
         df = load_technology_data()
         popular = get_top_technologies(df)
         growing = get_growing(df)
+        flat_growth = get_zero_growth(df)
         if not growing:
             message = "Growth appears once there are snapshots from two or more dates."
     except (DataValidationError, AnalysisError) as exc:
         message = str(exc)
     return render_template("index.html", popular=popular, growing=growing,
-                           message=message, domains=DOMAINS)
+                           flat_growth=flat_growth, message=message, domains=DOMAINS)
 
 
 @app.route("/results")

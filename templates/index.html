@@ -56,6 +56,13 @@
           <p class="muted">No data yet.</p>
         {% endif %}
       </section>
+
+      {% if flat_growth %}
+        <section class="card">
+          <h2>Technologies with no growth difference</h2>
+          <canvas id="flatGrowthChart" height="200"></canvas>
+        </section>
+      {% endif %}
     </div>
 
     <h2>Explore by domain</h2>
@@ -71,6 +78,7 @@
 
   <script>
     const popular = {{ popular | tojson }};
+    const flatGrowth = {{ flat_growth | tojson }};
     if (popular.length) {
       new Chart(document.getElementById("popularChart"), {
         type: "bar",
@@ -79,6 +87,16 @@
           datasets: [{ label: "Total stars", data: popular.map(p => p.total_stars), backgroundColor: "#7c3aed" }]
         },
         options: { plugins: { legend: { display: false } } }
+      });
+    }
+    if (flatGrowth.length) {
+      new Chart(document.getElementById("flatGrowthChart"), {
+        type: "bar",
+        data: {
+          labels: flatGrowth.map(t => t.technology),
+          datasets: [{ label: "Star growth", data: flatGrowth.map(t => t.growth), backgroundColor: "#0ea5e9" }]
+        },
+        options: { indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
       });
     }
   </script>
