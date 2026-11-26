@@ -24,3 +24,9 @@ Structured prompts used by the team, and how each AI output was verified.
 - I never kept AI code without running `python -m pytest`.
 - When an instruction did not work (a paste that did not save, a fix that left a hidden character), I reported the exact error back instead of guessing.
 - Every function went through a branch, a pull request and a teammate's approval before merging.
+
+### 5. Snapshot processing (Shabana)
+- **Prompt (summary):** I gave the AI Sadhika's real snapshot file (columns collected_on, technology, full_name, language, stars, topics) and asked how to clean it for the analysis stage.
+- **AI output:** it found that my old functions would reject the new format (missing columns), and that my old duplicate rule (repo + date) would wrongly delete repos that belong to several technologies. It proposed `load_snapshot`, `clean_snapshot` and `process_snapshot`, with the duplicate key technology + repo + date.
+- **How I verified:** I ran the code on the real file: 1,320 rows went in and 1,320 came out, 86 missing languages became `Unknown`, and every row got a domain. I wrote 19 tests in `tests/test_snapshot.py`, and the full test suite passed.
+- **Problems I found and fixed:** `metasploit` was classified as `Other`, so I added it to the Cybersecurity group. A test failed because the output path was a string, so I corrected the test.
