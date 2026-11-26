@@ -43,3 +43,37 @@ This module cleans the raw GitHub data collected by `data_collection.py` so the 
 - Only the languages listed in `CATEGORIES` get a group, and everything else becomes "Other".
 - Duplicates are detected by repository name and collection date only.
 - It uses Python's built-in `csv` module instead of pandas, so it works on computers that block pandas.
+
+
+## Snapshot Data Processing (Member 2: Shabana)
+
+**File:** `app/data_processing.py`
+
+This part cleans the technology snapshot files collected from GitHub, so the analysis and the dashboard can trust the numbers.
+
+| Function | What it does |
+|---|---|
+| `load_snapshot(path)` | Opens a snapshot CSV, ignores a hidden character at the start, and rejects wrong file types, missing files, empty files and missing columns |
+| `clean_snapshot(rows)` | Removes duplicates (same technology, repo and date), drops invalid or negative star counts, fills a missing language with `Unknown`, and adds a category |
+| `categorise_domain(technology)` | Puts a technology into one of 9 domains: Web, AI, Mobile, Cybersecurity, Cloud, AR/VR, Blockchain, Data Science, IoT (anything else is `Other`) |
+| `process_snapshot(raw_path)` | Runs the steps above and saves the result in `data/processed/` |
+
+**Raw snapshot columns:** `collected_on, technology, full_name, language, stars, topics`
+
+**Processed columns:** `collected_on, technology, repo_name, language, category, stars, topics` (`full_name` becomes `repo_name`, and `category` is the domain of the technology)
+
+A repo that belongs to two technologies (for example next.js under react and nextjs) is kept as two rows, because the duplicate check includes the technology.
+
+**Try it:**
+
+    python -c "from app.data_processing import process_snapshot; print(process_snapshot('data/raw/YOUR_SNAPSHOT.csv'))"
+
+**Run the tests:**
+
+    python -m pytest tests/test_snapshot.py
+
+**Limitations:**
+- A technology that is not in `TECHNOLOGY_DOMAINS` becomes `Other` until someone adds it.
+- Star counts written with a comma (for example `1,500`) are treated as invalid and the row is dropped.
+- One snapshot only shows popularity on one day. Growth needs at least two snapshots from different days.
+- Stars measure popularity, not quality, and unusual star counts need a manual check.
