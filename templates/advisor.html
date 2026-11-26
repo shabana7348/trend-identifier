@@ -72,23 +72,38 @@
       if (data.error) { alert(data.error); return; }
       const labels = [...new Set(Object.values(data).flat().map(p => p.date))].sort();
       const hint = document.getElementById("compareHint");
+      const growthChanges = Object.entries(data).map(([name, points]) => {
+        const values = points.map(point => point.stars);
+        const first = values[0] ?? 0;
+        const last = values[values.length - 1] ?? first;
+        const relativeChange = first ? Math.abs((last - first) / first) : 0;
+        return { name, growth: last - first, relativeChange, pointCount: values.length };
+      });
+      const nearFlat = labels.length >= 2 && growthChanges.length > 0 &&
+        growthChanges.every(item => item.pointCount >= 2 && item.relativeChange < 0.01);
       let chartType = "line";
       let chartData;
-      if (labels.length < 2) {
+      if (labels.length < 2 || nearFlat) {
         chartType = "bar";
         const current = Object.entries(data).map(([name, points]) => ({
           name,
-          stars: points.length ? points[points.length - 1].stars : 0,
+          stars: nearFlat && points.length > 1
+            ? points[points.length - 1].stars - points[0].stars
+            : (points.length ? points[points.length - 1].stars : 0),
         }));
         chartData = {
           labels: current.map(item => item.name),
           datasets: [{
-            label: `Current stars${labels.length ? ` (${labels[0]})` : ""}`,
+            label: nearFlat
+              ? `Star growth (${labels[0]} to ${labels[labels.length - 1]})`
+              : `Current stars${labels.length ? ` (${labels[0]})` : ""}`,
             data: current.map(item => item.stars),
             backgroundColor: ["#38bdf8", "#f472b6"],
           }],
         };
-        hint.textContent = "One snapshot available: comparing current stars. Collect another snapshot on a later day to see growth over time.";
+        hint.textContent = labels.length < 2
+          ? "One snapshot available: comparing current stars. Collect another snapshot on a later day to see growth over time."
+          : "Star totals changed by less than 1%, so this bar chart compares the star growth.";
       } else {
         chartData = {
           labels,
@@ -101,7 +116,13 @@
         hint.textContent = "Star totals over time.";
       }
       if (chart) chart.destroy();
-      chart = new Chart(document.getElementById("trendChart"), { type: chartType, data: chartData });
+      chart = new Chart(document.getElementById("trendChart"), {
+        type: chartType,
+        data: chartData,
+        options: chartType === "bar"
+          ? { indexAxis: "y", scales: { x: { beginAtZero: true } } }
+          : {},
+      });
     }
   </script>
 </body>
