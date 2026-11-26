@@ -6,7 +6,7 @@ from datetime import date
 import time
 
 from app.exceptions import DataCollectionError
-from app.topics import ALL_TOPICS
+from app.topics import ALL_TOPICS , EXCLUDED_REPOS
 
 # The web address of GitHub's search service
 GITHUB_URL = "https://api.github.com/search/repositories"
@@ -130,7 +130,8 @@ def collect_snapshot(topics=None, token=None, per_page=30, pause=None, session=N
     rows, failed = [], []
     for topic in topics or ALL_TOPICS:
         try:
-            rows.extend(fetch_topic_repos(topic, token, per_page, session))
+            found = fetch_topic_repos(topic, token, per_page, session)
+            rows.extend(r for r in found if r["full_name"] not in EXCLUDED_REPOS)
         except (RuntimeError, requests.RequestException):
             failed.append(topic)
         time.sleep(pause)

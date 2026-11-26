@@ -23,3 +23,6 @@ for _topics in DOMAINS.values():
     for _topic in _topics:
         if _topic not in ALL_TOPICS:
             ALL_TOPICS.append(_topic)
+
+# Real repos that carry a topic tag but are not about that technology
+EXCLUDED_REPOS = {"morluto/rea"}
