@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ domain.name }} trends | TRENDIFY</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 </head>
 <body>
   <header class="navbar">
@@ -17,11 +18,15 @@
     <span class="badge">Live GitHub data</span>
   </header>
   <main class="container">
-    <p><a href="/">← Explore all domains</a></p>
+    <p><a class="button-link" href="/">← Explore all domains</a></p>
     <h1>{{ domain.icon }} {{ domain.name }}</h1>
     <p class="muted">Popular technologies by total GitHub stars in the latest snapshot.</p>
     {% if error %}<p class="notice">{{ error }}</p>{% endif %}
     {% if technologies %}
+      <section class="card">
+        <h2>Compare technologies</h2>
+        <canvas id="domainChart" height="220"></canvas>
+      </section>
       <section class="card">
         <ol class="rank">
           {% for tech in technologies %}
@@ -35,5 +40,27 @@
       </section>
     {% endif %}
   </main>
+  {% if technologies %}
+    <script>
+      const technologies = {{ technologies | tojson }};
+      new Chart(document.getElementById("domainChart"), {
+        type: "bar",
+        data: {
+          labels: technologies.map(t => t.technology),
+          datasets: [{
+            label: "Total GitHub stars",
+            data: technologies.map(t => t.total_stars),
+            backgroundColor: "#7c3aed"
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+    </script>
+  {% endif %}
 </body>
 </html>
