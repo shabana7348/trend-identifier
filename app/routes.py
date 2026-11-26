@@ -62,7 +62,7 @@ def _read_matching(required):
             frames.append(df)
     if not frames:
         raise DataValidationError(
-            f"No CSV in data/raw has the columns {required}. Collect a snapshot first."
+           
         )
     return pd.concat(frames, ignore_index=True)
 
