@@ -121,8 +121,8 @@ def fetch_topic_repos(topic, token=None, per_page=30, session=None):
     ]
 
 
-def collect_snapshot(topics=None, token=None, per_page=30, pause=None, session=None):
-    """Collect repos for every topic. Topics that fail are skipped, not fatal."""
+def collect_snapshot(topics=None, token=None, per_page=30, pause=None, session=None, strict=False):
+    """Collect repos for every topic; strict mode fails if any topic request fails."""
     token = token or os.environ.get("GITHUB_TOKEN")
     if pause is None:
         pause = 2 if token else 6  # unauthenticated search is limited to ~10 requests/min
@@ -136,6 +136,8 @@ def collect_snapshot(topics=None, token=None, per_page=30, pause=None, session=N
         time.sleep(pause)
     if failed:
         print(f"Skipped topics: {failed}")
+        if strict:
+            raise DataCollectionError("Could not collect topics: " + ", ".join(failed))
     return rows
 
 
@@ -154,7 +156,7 @@ def save_snapshot(rows, directory="data/raw", today=None):
 
 
 if __name__ == "__main__":
-    snapshot_rows = collect_snapshot()
+    snapshot_rows = collect_snapshot(strict=True)
     if not snapshot_rows:
         raise SystemExit("GitHub returned no repositories; no snapshot was saved.")
     print(f"Saved {len(snapshot_rows)} live GitHub repositories to {save_snapshot(snapshot_rows)}")
