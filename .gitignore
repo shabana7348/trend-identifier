@@ -218,4 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-data/
+data/*
+!data/raw/
+data/raw/*
+!data/raw/snapshot_2026-11-25.csv
+!data/raw/snapshot_2026-11-26.csv
